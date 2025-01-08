@@ -3,6 +3,7 @@ from scipy.spatial.transform import Rotation as R
 
 import torch
 
+
 def dot(x, y):
     if isinstance(x, np.ndarray):
         return np.sum(x * y, -1, keepdims=True)
@@ -42,7 +43,9 @@ def look_at(campos, target, opengl=True):
 
 
 # elevation & azimuth to pose (cam2world) matrix
-def orbit_camera(elevation, azimuth, radius=1, is_degree=True, target=None, opengl=True):
+def orbit_camera(
+    elevation, azimuth, radius=1, is_degree=True, target=None, opengl=True
+):
     # radius: scalar
     # elevation: scalar, in (-90, 90), from +y to -y is (-90, 90)
     # azimuth: scalar, in (-180, 180), from +z to +x is (0, 90)
@@ -51,7 +54,7 @@ def orbit_camera(elevation, azimuth, radius=1, is_degree=True, target=None, open
         elevation = np.deg2rad(elevation)
         azimuth = np.deg2rad(azimuth)
     x = radius * np.cos(elevation) * np.sin(azimuth)
-    y = - radius * np.sin(elevation)
+    y = -radius * np.sin(elevation)
     z = radius * np.cos(elevation) * np.cos(azimuth)
     if target is None:
         target = np.zeros([3], dtype=np.float32)
@@ -70,12 +73,26 @@ class OrbitCamera:
         self.fovy = np.deg2rad(fovy)  # deg 2 rad
         self.near = near
         self.far = far
-        self.center = np.array([0, 0, 0], dtype=np.float32)  # look at this point
+        self.center = np.array(
+            [0, 0, 0], dtype=np.float32
+        )  # look at this point
         # self.rot = R.from_matrix(np.eye(3))
-        self.rot = R.from_matrix(np.array([[1., 0., 0.,],
-                                           [0., 0., -1.],
-                                           [0., 1., 0.]]))
-        self.up = np.array([0, 1, 0], dtype=np.float32)  # need to be normalized!
+        self.rot = R.from_matrix(
+            np.array(
+                [
+                    [
+                        1.0,
+                        0.0,
+                        0.0,
+                    ],
+                    [0.0, 0.0, -1.0],
+                    [0.0, 1.0, 0.0],
+                ]
+            )
+        )
+        self.up = np.array(
+            [0, 1, 0], dtype=np.float32
+        )  # need to be normalized!
         self.side = np.array([1, 0, 0], dtype=np.float32)
 
     @property
@@ -129,7 +146,9 @@ class OrbitCamera:
     @property
     def intrinsics(self):
         focal = self.H / (2 * np.tan(self.fovy / 2))
-        return np.array([focal, focal, self.W // 2, self.H // 2], dtype=np.float32)
+        return np.array(
+            [focal, focal, self.W // 2, self.H // 2], dtype=np.float32
+        )
 
     @property
     def mvp(self):
@@ -148,4 +167,6 @@ class OrbitCamera:
 
     def pan(self, dx, dy, dz=0):
         # pan in camera coordinate system (careful on the sensitivity!)
-        self.center += 0.0001 * self.rot.as_matrix()[:3, :3] @ np.array([-dx, -dy, dz])
+        self.center += (
+            0.0001 * self.rot.as_matrix()[:3, :3] @ np.array([-dx, -dy, dz])
+        )

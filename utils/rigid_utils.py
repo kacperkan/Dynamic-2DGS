@@ -13,9 +13,17 @@ def skew(w: torch.Tensor) -> torch.Tensor:
       W: (N, 3, 3) A skew matrix such that W @ v == w x v
     """
     zeros = torch.zeros(w.shape[0], device=w.device)
-    w_skew_list = [zeros, -w[:, 2], w[:, 1],
-                   w[:, 2], zeros, -w[:, 0],
-                   -w[:, 1], w[:, 0], zeros]
+    w_skew_list = [
+        zeros,
+        -w[:, 2],
+        w[:, 1],
+        w[:, 2],
+        zeros,
+        -w[:, 0],
+        -w[:, 1],
+        w[:, 0],
+        zeros,
+    ]
     w_skew = torch.stack(w_skew_list, dim=-1).reshape(-1, 3, 3)
     return w_skew
 
@@ -31,7 +39,9 @@ def rp_to_se3(R: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
       X: (4, 4) The homogeneous transformation matrix described by rotating by R
         and translating by p.
     """
-    bottom_row = torch.tensor([[0.0, 0.0, 0.0, 1.0]], device=R.device).repeat(R.shape[0], 1, 1)
+    bottom_row = torch.tensor([[0.0, 0.0, 0.0, 1.0]], device=R.device).repeat(
+        R.shape[0], 1, 1
+    )
     transform = torch.cat([torch.cat([R, p], dim=-1), bottom_row], dim=1)
 
     return transform
@@ -53,7 +63,11 @@ def exp_so3(w: torch.Tensor, theta: float) -> torch.Tensor:
     W = skew(w)
     identity = torch.eye(3).unsqueeze(0).repeat(W.shape[0], 1, 1).to(W.device)
     W_sqr = torch.bmm(W, W)  # batch matrix multiplication
-    R = identity + torch.sin(theta.unsqueeze(-1)) * W + (1.0 - torch.cos(theta.unsqueeze(-1))) * W_sqr
+    R = (
+        identity
+        + torch.sin(theta.unsqueeze(-1)) * W
+        + (1.0 - torch.cos(theta.unsqueeze(-1))) * W_sqr
+    )
     return R
 
 
@@ -78,8 +92,14 @@ def exp_se3(S: torch.Tensor, theta: float) -> torch.Tensor:
     W_sqr = torch.bmm(W, W)
     theta = theta.view(-1, 1, 1)
 
-    p = torch.bmm((theta * identity + (1.0 - torch.cos(theta)) * W + (theta - torch.sin(theta)) * W_sqr),
-                  v.unsqueeze(-1))
+    p = torch.bmm(
+        (
+            theta * identity
+            + (1.0 - torch.cos(theta)) * W
+            + (theta - torch.sin(theta)) * W_sqr
+        ),
+        v.unsqueeze(-1),
+    )
     return rp_to_se3(R, p)
 
 

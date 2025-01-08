@@ -3,7 +3,7 @@
 # GRAPHDECO research group, https://team.inria.fr/graphdeco
 # All rights reserved.
 #
-# This software is free for non-commercial, research and evaluation use 
+# This software is free for non-commercial, research and evaluation use
 # under the terms of the LICENSE.md file.
 #
 # For inquiries contact  george.drettakis@inria.fr
@@ -16,6 +16,7 @@ import numpy as np
 import random
 from PIL import Image
 
+
 def inverse_sigmoid(x):
     return torch.log(x / (1 - x))
 
@@ -25,8 +26,14 @@ def PILtoTorch(pil_image, resolution):
         # Process rgb and alpha respectively to avoid mask rgb with alpha
         rgb = Image.fromarray(np.asarray(pil_image)[..., :3])
         a = Image.fromarray(np.asarray(pil_image)[..., 3])
-        rgb, a = np.asarray(rgb.resize(resolution)), np.asarray(a.resize(resolution))
-        resized_image = torch.from_numpy(np.concatenate([rgb, a[..., None]], axis=-1)) / 255.0
+        rgb, a = (
+            np.asarray(rgb.resize(resolution)),
+            np.asarray(a.resize(resolution)),
+        )
+        resized_image = (
+            torch.from_numpy(np.concatenate([rgb, a[..., None]], axis=-1))
+            / 255.0
+        )
     else:
         resized_image_PIL = pil_image.resize(resolution)
         resized_image = torch.from_numpy(np.array(resized_image_PIL)) / 255.0
@@ -47,7 +54,7 @@ def ArrayToTorch(array, resolution):
 
 
 def get_expon_lr_func(
-        lr_init, lr_final, lr_delay_steps=0, lr_delay_mult=1.0, max_steps=1000000
+    lr_init, lr_final, lr_delay_steps=0, lr_delay_mult=1.0, max_steps=1000000
 ):
     """
     Copied from Plenoxels
@@ -83,7 +90,7 @@ def get_expon_lr_func(
 
 
 def get_linear_noise_func(
-        lr_init, lr_final, lr_delay_steps=0, lr_delay_mult=1.0, max_steps=1000000
+    lr_init, lr_final, lr_delay_steps=0, lr_delay_mult=1.0, max_steps=1000000
 ):
     """
     Copied from Plenoxels
@@ -119,7 +126,9 @@ def get_linear_noise_func(
 
 
 def strip_lowerdiag(L):
-    uncertainty = torch.zeros((L.shape[0], 6), dtype=torch.float, device="cuda")
+    uncertainty = torch.zeros(
+        (L.shape[0], 6), dtype=torch.float, device="cuda"
+    )
 
     uncertainty[:, 0] = L[:, 0, 0]
     uncertainty[:, 1] = L[:, 0, 1]
@@ -135,11 +144,16 @@ def strip_symmetric(sym):
 
 
 def build_rotation(r):
-    norm = torch.sqrt(r[:, 0] * r[:, 0] + r[:, 1] * r[:, 1] + r[:, 2] * r[:, 2] + r[:, 3] * r[:, 3])
+    norm = torch.sqrt(
+        r[:, 0] * r[:, 0]
+        + r[:, 1] * r[:, 1]
+        + r[:, 2] * r[:, 2]
+        + r[:, 3] * r[:, 3]
+    )
 
     q = r / norm[:, None]
 
-    R = torch.zeros((q.size(0), 3, 3), device='cuda')
+    R = torch.zeros((q.size(0), 3, 3), device="cuda")
 
     r = q[:, 0]
     x = q[:, 1]
@@ -192,7 +206,14 @@ def safe_state(silent):
         def write(self, x):
             if not self.silent:
                 if x.endswith("\n"):
-                    old_f.write(x.replace("\n", " [{}]\n".format(str(datetime.now().strftime("%d/%m %H:%M:%S")))))
+                    old_f.write(
+                        x.replace(
+                            "\n",
+                            " [{}]\n".format(
+                                str(datetime.now().strftime("%d/%m %H:%M:%S"))
+                            ),
+                        )
+                    )
                 else:
                     old_f.write(x)
 

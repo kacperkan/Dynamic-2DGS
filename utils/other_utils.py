@@ -48,16 +48,24 @@ def matrix_to_quaternion(matrix: torch.Tensor) -> torch.Tensor:
         [
             # pyre-fixme[58]: `**` is not supported for operand types `Tensor` and
             #  `int`.
-            torch.stack([q_abs[..., 0] ** 2, m21 - m12, m02 - m20, m10 - m01], dim=-1),
+            torch.stack(
+                [q_abs[..., 0] ** 2, m21 - m12, m02 - m20, m10 - m01], dim=-1
+            ),
             # pyre-fixme[58]: `**` is not supported for operand types `Tensor` and
             #  `int`.
-            torch.stack([m21 - m12, q_abs[..., 1] ** 2, m10 + m01, m02 + m20], dim=-1),
+            torch.stack(
+                [m21 - m12, q_abs[..., 1] ** 2, m10 + m01, m02 + m20], dim=-1
+            ),
             # pyre-fixme[58]: `**` is not supported for operand types `Tensor` and
             #  `int`.
-            torch.stack([m02 - m20, m10 + m01, q_abs[..., 2] ** 2, m12 + m21], dim=-1),
+            torch.stack(
+                [m02 - m20, m10 + m01, q_abs[..., 2] ** 2, m12 + m21], dim=-1
+            ),
             # pyre-fixme[58]: `**` is not supported for operand types `Tensor` and
             #  `int`.
-            torch.stack([m10 - m01, m20 + m02, m21 + m12, q_abs[..., 3] ** 2], dim=-1),
+            torch.stack(
+                [m10 - m01, m20 + m02, m21 + m12, q_abs[..., 3] ** 2], dim=-1
+            ),
         ],
         dim=-2,
     )
@@ -71,26 +79,31 @@ def matrix_to_quaternion(matrix: torch.Tensor) -> torch.Tensor:
     # forall i; we pick the best-conditioned one (with the largest denominator)
 
     return quat_candidates[
-        torch.nn.functional.one_hot(q_abs.argmax(dim=-1), num_classes=4) > 0.5, :
+        torch.nn.functional.one_hot(q_abs.argmax(dim=-1), num_classes=4) > 0.5,
+        :,
     ].reshape(batch_dim + (4,))
 
 
-def depth2normal(depth:torch.Tensor, focal:float=None):
+def depth2normal(depth: torch.Tensor, focal: float = None):
     if depth.dim() == 2:
         depth = depth[None, None]
     elif depth.dim() == 3:
         depth = depth.squeeze()[None, None]
     if focal is None:
-        focal = depth.shape[-1] / 2 / np.tan(torch.pi/6)
+        focal = depth.shape[-1] / 2 / np.tan(torch.pi / 6)
     depth = torch.cat([depth[:, :, :1], depth, depth[:, :, -1:]], dim=2)
     depth = torch.cat([depth[..., :1], depth, depth[..., -1:]], dim=3)
-    kernel = torch.tensor([[[  0,   0,  0],
-                            [-.5,   0, .5],
-                            [  0,   0,  0]],
-                           [[  0, -.5,  0],
-                            [  0,   0,  0],
-                            [  0,  .5,  0]]], device=depth.device, dtype=depth.dtype)[:, None]
-    normal = torch.nn.functional.conv2d(depth, kernel, padding='valid')[0].permute(1, 2, 0)
+    kernel = torch.tensor(
+        [
+            [[0, 0, 0], [-0.5, 0, 0.5], [0, 0, 0]],
+            [[0, -0.5, 0], [0, 0, 0], [0, 0.5, 0]],
+        ],
+        device=depth.device,
+        dtype=depth.dtype,
+    )[:, None]
+    normal = torch.nn.functional.conv2d(depth, kernel, padding="valid")[
+        0
+    ].permute(1, 2, 0)
     normal = normal / (depth[0, 0, 1:-1, 1:-1, None] + 1e-10) * focal
     normal = torch.cat([normal, torch.ones_like(normal[..., :1])], dim=-1)
     normal = normal / normal.norm(dim=-1, keepdim=True)

@@ -1,4 +1,3 @@
-
 import cv2
 import numpy as np
 
@@ -14,4 +13,4 @@ white_background = 255 * np.ones_like(image, dtype=np.uint8)
 mask = cv2.inRange(image, (0, 0, 0), (10, 10, 10))
 white_background[mask != 255] = image[mask != 255]
 
-cv2.imwrite('white_background_depth_image.png', white_background)
+cv2.imwrite("white_background_depth_image.png", white_background)

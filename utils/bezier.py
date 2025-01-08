@@ -7,9 +7,9 @@ class BezierCurve:
             points = points[None]
         self.points = points  # N, T, D
         self.T = points.shape[1]
-    
+
     def __call__(self, t: float):
-        assert 0 <= t <= 1, f't: {t} out of range [0, 1]!'
+        assert 0 <= t <= 1, f"t: {t} out of range [0, 1]!"
         return self.interpolate(t, self.points)
 
     def interpolate(self, t, points):
@@ -29,9 +29,9 @@ class PieceWiseLinear:
             points = points[None]
         self.points = points  # N, T, D
         self.T = points.shape[1]
-    
+
     def __call__(self, t: float):
-        assert 0 <= t <= 1, f't: {t} out of range [0, 1]!'
+        assert 0 <= t <= 1, f"t: {t} out of range [0, 1]!"
         return self.interpolate(t, self.points)
 
     def interpolate(self, t, points):
