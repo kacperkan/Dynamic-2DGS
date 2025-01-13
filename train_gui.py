@@ -30,6 +30,7 @@ from cam_utils import OrbitCamera
 import numpy as np
 import imageio
 
+
 try:
     from torch.utils.tensorboard import SummaryWriter
 
@@ -600,6 +601,8 @@ class GUI:
                     mask * coor1to2_flow, mask * coor1to2_motion
                 )
                 loss = loss + lambda_optical * optical_flow_loss
+        else:
+            optical_flow_loss = 0
 
         # Motion Mask Loss
         lambda_motion_mask = landmark_interpolate(
@@ -636,6 +639,8 @@ class GUI:
             motion_image = render_pkg_motion["render"][0]
             L_motion = l1_loss(gt_alpha_mask, motion_image)
             loss = loss + L_motion * lambda_motion_mask
+        else:
+            L_motion = 0
 
         loss.backward()
 
@@ -680,7 +685,15 @@ class GUI:
                     (self.pipe, self.background),
                     self.deform,
                     self.dataset.load2gpu_on_the_fly,
-                    self.progress_bar,
+                    progress_bar=self.progress_bar,
+                    loss_dict={
+                        "normal": normal_loss,
+                        "dist": dist_loss,
+                        "mask": mask_loss,
+                        "optical": optical_flow_loss,
+                        "motion": L_motion,
+                        "deform_reg": self.deform.reg_loss,
+                    },
                 )
             )
             if self.iteration in self.testing_iterations:

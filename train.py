@@ -12,6 +12,7 @@
 import os
 import torch
 from scene import Scene
+from jaxtyping import Float
 import uuid
 from utils.image_utils import psnr, alex_lpips
 from utils.image_utils import ssim as ssim_func
@@ -19,6 +20,7 @@ from piq import LPIPS
 
 from argparse import Namespace
 from pytorch_msssim import ms_ssim
+from typing import Dict, Optional, Union
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -28,6 +30,12 @@ except ImportError:
     TENSORBOARD_FOUND = False
 
 lpips = LPIPS()
+
+
+def to_float(x: Union[Float[torch.Tensor, ""], float]) -> float:
+    if torch.is_tensor(x):
+        return x.item()
+    return x
 
 
 def prepare_output_and_logger(args):
@@ -66,6 +74,7 @@ def training_report(
     renderArgs,
     deform,
     load2gpu_on_the_fly,
+    loss_dict: Optional[Dict[str, float]] = None,
     progress_bar=None,
 ):
     if tb_writer:
@@ -286,6 +295,14 @@ def training_report(
                         test_alex_lpips,
                         iteration,
                     )
+
+                    if loss_dict is not None:
+                        for key, value in loss_dict.items():
+                            tb_writer.add_scalar(
+                                config["name"] + "/loss_viewpoint - " + key,
+                                to_float(value),
+                                iteration,
+                            )
 
         if tb_writer:
             tb_writer.add_histogram(
