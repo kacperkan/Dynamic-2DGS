@@ -12,21 +12,16 @@
 import torch
 from scene import Scene, DeformModel
 import os
-from tqdm import tqdm
-from os import makedirs
+from typing import Tuple
 from gaussian_renderer import render
-import torchvision
-from utils.general_utils import safe_state
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args
 from gaussian_renderer import GaussianModel
 from utils.mesh_utils import (
     GaussianExtractor,
-    to_cam_open3d,
     post_process_mesh,
 )
 from utils.render_utils import generate_path, create_videos
-from utils.system_utils import load_config_from_file, merge_config
 
 # import sys
 import open3d as o3d
@@ -34,9 +29,6 @@ import numpy as np
 from mesh_renderer import render_mesh, mesh_shape_renderer
 import cv2
 import json
-import os
-from PIL import Image
-from read_gt_mesh import load_obj
 
 
 def clean_mesh(
@@ -44,7 +36,7 @@ def clean_mesh(
     edge_threshold: float = 0.1,
     min_triangles_connected: int = -1,
     fill_holes: bool = True,
-) -> (torch.Tensor, torch.Tensor, torch.Tensor):
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Performs the following steps to clean the mesh:
 
@@ -90,11 +82,11 @@ def clean_mesh(
     # cleanup via open3d
     mesh.remove_unreferenced_vertices()
 
-    if fill_holes:
-        # misc cleanups via trimesh
-        mesh = o3d_to_trimesh(mesh)
-        mesh.process()
-        mesh.fill_holes()
+    # if fill_holes:
+    #     # misc cleanups via trimesh
+    #     mesh = o3d_to_trimesh(mesh)
+    #     mesh.process()
+    #     mesh.fill_holes()
     return mesh
 
 
@@ -322,7 +314,7 @@ if __name__ == "__main__":
             # print("mesh saved at {}".format(os.path.join(train_dir, name)))
             # post-process the mesh and save, saving the largest N clusters
             mesh_post = post_process_mesh(
-                mesh, cluster_to_keep=args.num_cluster
+                mesh, num_triangles_to_keep=args.num_cluster
             )
             # mesh_post = mesh_post.fill_holes()
 

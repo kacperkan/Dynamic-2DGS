@@ -19,10 +19,7 @@ from diff_surfel_rasterization import (
 # from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
-from utils.rigid_utils import from_homogenous, to_homogenous
 from utils.point_utils import depth_to_normal
-import numpy as np
-import cv2
 
 
 def standardize_quaternion(quaternions: torch.Tensor) -> torch.Tensor:
@@ -86,7 +83,7 @@ def render(
     )
     try:
         screenspace_points.retain_grad()
-    except:
+    except Exception:
         pass
 
     # Set up rasterization configuration
@@ -314,7 +311,7 @@ def render_flow(
     )
     try:
         screenspace_points.retain_grad()
-    except:
+    except Exception:
         pass
 
     # Set up rasterization configuration

@@ -13,11 +13,10 @@ import os
 import torch
 from scene import Scene
 import uuid
-from utils.image_utils import psnr, lpips, alex_lpips
+from utils.image_utils import psnr, alex_lpips
 from utils.image_utils import ssim as ssim_func
 from piq import LPIPS
 
-lpips = LPIPS()
 from argparse import Namespace
 from pytorch_msssim import ms_ssim
 
@@ -27,6 +26,8 @@ try:
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
+
+lpips = LPIPS()
 
 
 def prepare_output_and_logger(args):
@@ -169,6 +170,29 @@ def training_report(
 
                     # images = torch.cat((images, image.unsqueeze(0)), dim=0)
                     # gts = torch.cat((gts, gt_image.unsqueeze(0)), dim=0)
+                    render_pkg = renderFunc(
+                        viewpoint,
+                        scene.gaussians,
+                        *renderArgs,
+                        d_xyz=d_xyz,
+                        d_rotation=d_rotation,
+                        d_scaling=d_scaling,
+                        d_opacity=d_opacity,
+                        d_color=d_color,
+                        d_rot_as_res=deform.d_rot_as_res,
+                    )
+                    image = torch.clamp(render_pkg["render"], 0.0, 1.0)
+                    gt_image = torch.clamp(
+                        viewpoint.original_image.to("cuda"), 0.0, 1.0
+                    )
+
+                    rend_normal = render_pkg["rend_normal"] * 0.5 + 0.5
+                    tb_writer.add_images(
+                        config["name"]
+                        + "_view_{}/rend_normal".format(viewpoint.image_name),
+                        rend_normal[None],
+                        global_step=iteration,
+                    )
 
                     if load2gpu_on_the_fly:
                         viewpoint.load2device("cpu")
@@ -193,6 +217,7 @@ def training_report(
                 psnr_test = torch.stack(psnr_list).mean()
                 ssim_test = torch.stack(ssim_list).mean()
                 lpips_test = torch.stack(lpips_list).mean()
+
                 ms_ssim_test = torch.stack(ms_ssim_list).mean()
                 alex_lpips_test = torch.stack(alex_lpips_list).mean()
                 if (

@@ -12,11 +12,11 @@
 import os
 
 # os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
-import time
 import torch
 from random import randint
 from utils.loss_utils import l1_loss, ssim
-from gaussian_renderer import render, network_gui, render_flow
+from gaussian_renderer import render, render_flow
+import torch.nn.functional
 import sys
 from scene import Scene, GaussianModel, DeformModel
 from utils.general_utils import safe_state, get_linear_noise_func
@@ -28,13 +28,7 @@ from train import training_report
 import math
 from cam_utils import OrbitCamera
 import numpy as np
-import dearpygui.dearpygui as dpg
 import imageio
-import datetime
-from PIL import Image
-from train_gui_utils import DeformKeypoints
-from scipy.spatial.transform import Rotation as R
-from utils.system_utils import load_config_from_file, merge_config
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -305,44 +299,6 @@ class GUI:
                     self.train_step()
 
     def train_step(self):
-        if network_gui.conn == None:
-            network_gui.try_connect()
-        while network_gui.conn != None:
-            try:
-                net_image_bytes = None
-                (
-                    custom_cam,
-                    do_training,
-                    self.pipe.do_shs_python,
-                    self.pipe.do_cov_python,
-                    keep_alive,
-                    scaling_modifer,
-                ) = network_gui.receive()
-                if custom_cam != None:
-                    net_image = render(
-                        custom_cam,
-                        self.gaussians,
-                        self.pipe,
-                        self.background,
-                        scaling_modifer,
-                    )["render"]
-                    net_image_bytes = memoryview(
-                        (torch.clamp(net_image, min=0, max=1.0) * 255)
-                        .byte()
-                        .permute(1, 2, 0)
-                        .contiguous()
-                        .cpu()
-                        .numpy()
-                    )
-                network_gui.send(net_image_bytes, self.dataset.source_path)
-                if do_training and (
-                    (self.iteration < int(self.opt.iterations))
-                    or not keep_alive
-                ):
-                    break
-            except Exception as e:
-                network_gui.conn = None
-
         self.iter_start.record()
 
         # Every 1000 its we increase the levels of SH up to a maximum degree
@@ -517,29 +473,23 @@ class GUI:
 
         # Loss
         gt_image = viewpoint_cam.original_image.cuda()
-        if random_bg_color:
-            gt_alpha_mask = viewpoint_cam.gt_alpha_mask.cuda()
-            gt_image = (
-                gt_alpha_mask * gt_image
-                + (1 - gt_alpha_mask)
-                * render_pkg_re["bg_color"][:, None, None]
-            )
-        elif (
+        if (
             self.dataset.white_background
             and viewpoint_cam.gt_alpha_mask is not None
             and self.opt.gt_alpha_mask_as_scene_mask
         ):
             gt_alpha_mask = viewpoint_cam.gt_alpha_mask.cuda()
-            gt_image = (
-                gt_alpha_mask * gt_image
-                + (1 - gt_alpha_mask) * self.background[:, None, None]
+            mask_loss = torch.nn.functional.binary_cross_entropy(
+                render_pkg_re["alpha"], gt_alpha_mask
             )
+        else:
+            mask_loss = 0.0
 
         Ll1 = l1_loss(image, gt_image)
         loss_img = (
             1.0 - self.opt.lambda_dssim
         ) * Ll1 + self.opt.lambda_dssim * (1.0 - ssim(image, gt_image))
-        loss = loss_img + normal_loss + dist_loss
+        loss = loss_img + normal_loss + dist_loss + 0.001 * mask_loss
 
         if self.iteration > self.opt.warm_up:
             loss = loss + self.deform.reg_loss
@@ -960,7 +910,7 @@ class GUI:
             d_color=d_color,
             d_rot_as_res=self.deform.d_rot_as_res,
         )
-        image, viewspace_point_tensor, visibility_filter, radii = (
+        image, viewspace_point_tensor, visibility_filter, _ = (
             render_pkg_re["render"],
             render_pkg_re["viewspace_points"],
             render_pkg_re["visibility_filter"],
@@ -969,16 +919,22 @@ class GUI:
 
         # Loss
         gt_image = viewpoint_cam.original_image.cuda()
-        if random_bg_color:
+        if (
+            viewpoint_cam.gt_alpha_mask is not None
+            and self.opt.gt_alpha_mask_as_scene_mask
+        ):
             gt_alpha_mask = viewpoint_cam.gt_alpha_mask.cuda()
-            gt_image = gt_image * gt_alpha_mask + render_pkg_re["bg_color"][
-                :, None, None
-            ] * (1 - gt_alpha_mask)
+            mask_loss = torch.nn.functional.binary_cross_entropy(
+                render_pkg_re["alpha"], gt_alpha_mask
+            )
+        else:
+            mask_loss = 0.0
+
         Ll1 = l1_loss(image, gt_image)
         loss_img = (
             1.0 - self.opt.lambda_dssim
         ) * Ll1 + self.opt.lambda_dssim * (1.0 - ssim(image, gt_image))
-        loss = loss_img
+        loss = loss_img + 0.001 * mask_loss
 
         if self.iteration_node_rendering > self.opt.node_warm_up:
             if not self.deform.deform.use_hash:
