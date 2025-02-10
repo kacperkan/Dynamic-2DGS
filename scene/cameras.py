@@ -29,7 +29,7 @@ class Camera(nn.Module):
         uid,
         trans=np.array([0.0, 0.0, 0.0]),
         scale=1.0,
-        data_device="cuda",
+        data_device="cpu",
         fid=None,
         depth=None,
         flow_dirs=[],

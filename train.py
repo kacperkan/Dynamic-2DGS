@@ -72,7 +72,6 @@ def training_report(
     scene: Scene,
     renderFunc,
     renderArgs,
-    deform,
     load2gpu_on_the_fly,
     loss_dict: Optional[Dict[str, float]] = None,
     progress_bar=None,
@@ -113,43 +112,12 @@ def training_report(
                 for idx, viewpoint in enumerate(config["cameras"]):
                     if load2gpu_on_the_fly:
                         viewpoint.load2device()
-                    fid = viewpoint.fid
-                    xyz = scene.gaussians.get_xyz
-
-                    if deform.name == "mlp":
-                        time_input = fid.unsqueeze(0).expand(xyz.shape[0], -1)
-                    elif deform.name == "node":
-                        time_input = deform.deform.expand_time(fid)
-                    else:
-                        time_input = 0
-
-                    d_values = deform.step(
-                        xyz.detach(),
-                        time_input,
-                        feature=scene.gaussians.feature,
-                        is_training=False,
-                        motion_mask=scene.gaussians.motion_mask,
-                        camera_center=viewpoint.camera_center,
-                    )
-                    d_xyz, d_rotation, d_scaling, d_opacity, d_color = (
-                        d_values["d_xyz"],
-                        d_values["d_rotation"],
-                        d_values["d_scaling"],
-                        d_values["d_opacity"],
-                        d_values["d_color"],
-                    )
 
                     image = torch.clamp(
                         renderFunc(
                             viewpoint,
                             scene.gaussians,
                             *renderArgs,
-                            d_xyz=d_xyz,
-                            d_rotation=d_rotation,
-                            d_scaling=d_scaling,
-                            d_opacity=d_opacity,
-                            d_color=d_color,
-                            d_rot_as_res=deform.d_rot_as_res,
                         )["render"],
                         0.0,
                         1.0,
@@ -180,15 +148,7 @@ def training_report(
                     # images = torch.cat((images, image.unsqueeze(0)), dim=0)
                     # gts = torch.cat((gts, gt_image.unsqueeze(0)), dim=0)
                     render_pkg = renderFunc(
-                        viewpoint,
-                        scene.gaussians,
-                        *renderArgs,
-                        d_xyz=d_xyz,
-                        d_rotation=d_rotation,
-                        d_scaling=d_scaling,
-                        d_opacity=d_opacity,
-                        d_color=d_color,
-                        d_rot_as_res=deform.d_rot_as_res,
+                        viewpoint, scene.gaussians, *renderArgs
                     )
                     image = torch.clamp(render_pkg["render"], 0.0, 1.0)
                     gt_image = torch.clamp(

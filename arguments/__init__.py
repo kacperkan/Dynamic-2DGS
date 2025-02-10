@@ -22,9 +22,7 @@ class ParamGroup:
     def __init__(self, parser: ArgumentParser, name: str, fill_none=False):
         group = parser.add_argument_group(name)
         for key, value in vars(self).items():
-            shorthand = False
             if key.startswith("_"):
-                shorthand = True
                 key = key[1:]
             t = type(value)
             value = value if not fill_none else None
@@ -34,7 +32,7 @@ class ParamGroup:
             #     else:
             #         group.add_argument("--" + key, ("-" + key[0:1]), default=value, type=t)
             # else:
-            if t == bool:
+            if type(t) is bool:
                 group.add_argument(
                     "--" + key, default=value, action="store_true"
                 )
@@ -79,6 +77,41 @@ class ModelParams(ParamGroup):
         self.as_gs_force_with_motion_mask = False  # Only for scenes with both static and dynamic parts and without alpha mask
         self.max_d_scale = -1.0
         self.is_scene_static = False
+
+        self.net_width = 64  # width of deformation MLP, larger will increase the rendering quality and decrase the training/rendering speed.
+        self.timebase_pe = 4  # useless
+        self.defor_depth = 1  # depth of deformation MLP, larger will increase the rendering quality and decrase the training/rendering speed.
+        self.posebase_pe = 10  # useless
+        self.scale_rotation_pe = 2  # useless
+        self.opacity_pe = 2  # useless
+        self.timenet_width = 64  # useless
+        self.timenet_output = 32  # useless
+        self.bounds = 1.6
+        self.plane_tv_weight = 0.0001  # TV loss of spatial grid
+        self.time_smoothness_weight = 0.01  # TV loss of temporal grid
+        self.l1_time_planes = 0.0001  # TV loss of temporal grid
+        self.kplanes_config = {
+            "grid_dimensions": 2,
+            "input_coordinate_dim": 4,
+            "output_coordinate_dim": 32,
+            "resolution": [
+                64,
+                64,
+                64,
+                25,
+            ],  # [64,64,64]: resolution of spatial grid. 25: resolution of temporal grid, better to be half length of dynamic frames
+        }
+        self.multires = [1, 2, 4, 8]  # multi resolution of voxel grid
+        self.no_dx = False  # cancel the deformation of Gaussians' position
+        self.no_grid = False  # cancel the spatial-temporal hexplane.
+        self.no_ds = False  # cancel the deformation of Gaussians' scaling
+        self.no_dr = False  # cancel the deformation of Gaussians' rotations
+        self.no_do = True  # cancel the deformation of Gaussians' opacity
+        self.no_dshs = True  # cancel the deformation of SH colors.
+        self.empty_voxel = False  # useless
+        self.grid_pe = 0  # useless, I was trying to add positional encoding to hexplane's features
+        self.static_mlp = False  # useless
+        self.apply_rotation = False  # useless
         super().__init__(parser, "Loading Parameters", sentinel)
 
     def extract(self, args):
@@ -104,64 +137,50 @@ class PipelineParams(ParamGroup):
 
 class OptimizationParams(ParamGroup):
     def __init__(self, parser):
-        self.iterations = 80_000
-        self.warm_up = 3_000
-        self.dynamic_color_warm_up = 20_000
+        self.dataloader = False
+        self.zerostamp_init = False
+        self.custom_sampler = None
+        self.iterations = 30_000
+        self.coarse_iterations = 3000
         self.position_lr_init = 0.00016
         self.position_lr_final = 0.0000016
         self.position_lr_delay_mult = 0.01
-        self.position_lr_max_steps = 30_000
-        self.deform_lr_max_steps = 40_000
-        # self.feature_lr = 0.0025
-        self.feature_lr = 0.004
+        self.position_lr_max_steps = 20_000
+        self.deformation_lr_init = 0.00016
+        self.deformation_lr_final = 0.000016
+        self.deformation_lr_delay_mult = 0.01
+        self.grid_lr_init = 0.0016
+        self.grid_lr_final = 0.00016
+
+        self.feature_lr = 0.0025
         self.opacity_lr = 0.05
-        self.scaling_lr = 0.002
-        # self.rotation_lr = 0.001
-        self.rotation_lr = 0.002
+        self.scaling_lr = 0.005
+        self.rotation_lr = 0.001
         self.percent_dense = 0.01
-        # self.lambda_dssim = 0.2
-        self.lambda_dssim = 0.2
-        self.densification_interval = 100
+        self.lambda_dssim = 0
+        self.lambda_lpips = 0
+        self.weight_constraint_init = 1
+        self.weight_constraint_after = 0.2
+        self.weight_decay_iteration = 5000
         self.opacity_reset_interval = 3000
+        self.densification_interval = 100
         self.densify_from_iter = 500
-        self.densify_until_iter = 50_000
-        self.densify_grad_threshold = 0.0002
+        self.densify_until_iter = 15_000
+        self.densify_grad_threshold_coarse = 0.0002
+        self.densify_grad_threshold_fine_init = 0.0002
+        self.densify_grad_threshold_after = 0.0002
+        self.pruning_from_iter = 500
+        self.pruning_interval = 100
+        self.opacity_threshold_coarse = 0.005
+        self.opacity_threshold_fine_init = 0.005
+        self.opacity_threshold_fine_after = 0.005
+        self.batch_size = 1
+        self.add_point = False
+
         self.oneupSHdegree_step = 1000
-        self.random_bg_color = False
-
-        self.deform_lr_scale = 1.0
-        self.deform_downsamp_strategy = "samp_hyper"
-        self.deform_downsamp_with_dynamic_mask = False
-        self.node_enable_densify_prune = False
-        self.node_densification_interval = 5000
-        self.node_densify_from_iter = 1000
-        self.node_densify_until_iter = 25_000
-        self.node_force_densify_prune_step = 10_000
-        self.node_max_num_ratio_during_init = 16
-
-        self.random_init_deform_gs = False
-        self.node_warm_up = 2_000
-        self.iterations_node_sampling = 7500
-        self.iterations_node_rendering = 10000
-
-        self.progressive_train = False
-        self.progressive_train_node = False
-        self.progressive_stage_ratio = (
-            0.2  # The ratio of the number of images added per stage
-        )
-        self.progressive_stage_steps = 3000  # The training steps of each stage
-
-        self.lambda_optical_landmarks = [1e-1, 1e-1, 1e-3, 0]
-        self.lambda_optical_steps = [0, 15_000, 25_000, 25_001]
-
-        self.lambda_motion_mask_landmarks = [5e-1, 1e-2, 0]
-        self.lambda_motion_mask_steps = [0, 10_000, 10_001]
-        self.no_motion_mask_loss = False  # Camera pose may be inaccurate and should model the whole scene motion
-
         self.gt_alpha_mask_as_scene_mask = False
         self.gt_alpha_mask_as_dynamic_mask = False
-        self.no_arap_loss = False  # For large scenes arap is too slow
-        self.with_temporal_smooth_loss = False
+        self.random_bg_color = False
 
         super().__init__(parser, "Optimization Parameters")
 
@@ -191,6 +210,6 @@ def get_combined_args(parser: ArgumentParser):
 
     merged_dict = vars(args_cfgfile).copy()
     for k, v in vars(args_cmdline).items():
-        if v != None:
+        if v is not None:
             merged_dict[k] = v
     return Namespace(**merged_dict)

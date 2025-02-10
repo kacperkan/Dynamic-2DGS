@@ -15,7 +15,7 @@ try:
     from torch_batch_svd import svd
 
     print("Using speed up torch_batch_svd!")
-except:
+except Exception:
     svd = torch.svd
     print("Use original torch svd!")
 
@@ -247,7 +247,10 @@ def get_embedder(multires, i=1):
     }
 
     embedder_obj = Embedder(**embed_kwargs)
-    embed = lambda x, eo=embedder_obj: eo.embed(x)
+
+    def embed(x, eo=embedder_obj):
+        return eo.embed(x)
+
     return embed, embedder_obj.out_dim
 
 
@@ -380,8 +383,8 @@ class StaticNetwork(nn.Module):
 class DeformNetwork(nn.Module):
     def __init__(
         self,
-        D=8,
-        W=256,
+        D=4,
+        W=128,
         input_ch=3,
         output_ch=59,
         t_multires=6,
@@ -537,7 +540,7 @@ class DeformNetwork(nn.Module):
             t_emb = self.timenet(t_emb)  # better for D-NeRF Dataset
         x_emb = self.embed_fn(x)
         h = torch.cat([x_emb, t_emb], dim=-1)
-        for i, l in enumerate(self.linear):
+        for i, _ in enumerate(self.linear):
             h = self.linear[i](h)
             h = F.relu(h)
             if i in self.skips:
@@ -1179,7 +1182,7 @@ class ControlNodeWarp(nn.Module):
                 name = key[3:]
                 try:
                     getattr(self.as_gaussians, name).data = state_dict[key]
-                except:
+                except Exception:
                     print(
                         f"Directly set as values for {key} when loading deform gaussians"
                     )
@@ -1423,9 +1426,9 @@ class ControlNodeWarp(nn.Module):
     def node_deform(self, t, detach_node=True, **kwargs):
         tshape = t.shape
         if t.dim() == 3:
-            assert (
-                t.shape[0] == self.node_num
-            ), f"Shape of t {t.shape} does not match the shape of nodes {self.nodes.shape}"
+            assert t.shape[0] == self.node_num, (
+                f"Shape of t {t.shape} does not match the shape of nodes {self.nodes.shape}"
+            )
             nodes = (
                 self.nodes[:, None, ..., :3]
                 .expand(self.node_num, t.shape[1], 3)
@@ -1832,9 +1835,6 @@ class ControlNodeWarp(nn.Module):
                         mode="trajectory",
                         t0=t,
                     )
-                    d_rotation_bias = (
-                        node_rot_bias[cur_nn_idx] * cur_nn_weight[..., None]
-                    ).sum(dim=1)
                     d_nn_node_rot_R = quaternion_to_matrix(node_rot_bias)[
                         cur_nn_idx
                     ]
@@ -1890,7 +1890,6 @@ class ControlNodeWarp(nn.Module):
             # Building Learnable Gaussians for Nodes
             print("Building Learnable Gaussians for Nodes!")
             from scene.gaussian_model import (
-                GaussianModel,
                 BasicPointCloud,
                 StandardGaussianModel,
             )
@@ -1919,7 +1918,6 @@ class ControlNodeWarp(nn.Module):
                 "Initialize Learnable Gaussians for Nodes with Point Clouds!"
             )
             from scene.gaussian_model import (
-                GaussianModel,
                 BasicPointCloud,
                 StandardGaussianModel,
             )
