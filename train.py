@@ -17,11 +17,11 @@ from typing import Dict, Optional, Union
 import torch
 from jaxtyping import Float
 from piq import LPIPS
+from piq import ssim as ssim_func
 from pytorch_msssim import ms_ssim
 
 from scene import Scene
 from utils.image_utils import alex_lpips, psnr
-from utils.image_utils import ssim as ssim_func
 
 try:
     from torch.utils.tensorboard import SummaryWriter

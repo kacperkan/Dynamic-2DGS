@@ -27,7 +27,8 @@ import tqdm
 from arguments import ModelParams, OptimizationParams, PipelineParams
 from cam_utils import OrbitCamera
 from gaussian_renderer import render, render_flow
-from scene import DeformModel, GaussianModel, Scene
+from scene import GaussianModel, Scene
+from scene.deform_model import DeformModel
 from train import training_report
 from utils.general_utils import get_linear_noise_func, safe_state
 from utils.loss_utils import l1_loss, ssim

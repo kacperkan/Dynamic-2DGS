@@ -106,6 +106,7 @@ def render(
         campos=viewpoint_camera.camera_center,
         prefiltered=False,
         debug=pipe.debug,
+        record_transmittance=False,
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)

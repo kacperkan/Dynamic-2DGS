@@ -5,7 +5,7 @@ python train_gui.py \
     --source_path ${DATASET_PATH}/${dataset_name} \
     --model_path outputs/${dataset_name}_${EXPERIMENT_NAME} \
     --eval \
-    --deform_type mlp \
+    --deform_type node \
     --load2gpu_on_the_fly
 
 

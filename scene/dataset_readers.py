@@ -679,7 +679,7 @@ def view_synthesis(cps, factor=10):
     new_rots = slerp(np.linspace(0, frame_num - 1, new_num)).as_matrix()
     new_trans = f_tran(np.linspace(0, frame_num - 1, new_num)).T
 
-    new_cps = np.zeros([new_num, 4, 4], np.float)
+    new_cps = np.zeros([new_num, 4, 4], np.float32)
     new_cps[:, :3, :3] = new_rots
     new_cps[:, :3, -1] = new_trans
     new_cps[:, 3, 3] = 1
