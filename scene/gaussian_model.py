@@ -9,25 +9,25 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-import torch
-import numpy as np
-from utils.general_utils import (
-    inverse_sigmoid,
-    get_expon_lr_func,
-    build_rotation,
-)
-from torch import nn
 import os
-from utils.system_utils import mkdir_p
+
+import numpy as np
+import torch
 from plyfile import PlyData, PlyElement
-from utils.sh_utils import RGB2SH
 from simple_knn._C import distCUDA2
-from utils.graphics_utils import BasicPointCloud
+from torch import nn
+
 from utils.general_utils import (
-    strip_symmetric,
+    build_rotation,
     build_scaling_rotation,
     build_scaling_rotation_inverse,
+    get_expon_lr_func,
+    inverse_sigmoid,
+    strip_symmetric,
 )
+from utils.graphics_utils import BasicPointCloud
+from utils.sh_utils import RGB2SH
+from utils.system_utils import mkdir_p
 
 
 def quaternion_multiply(q1, q2):
@@ -178,13 +178,13 @@ class GaussianModel:
         max_point_num=150_000,
     ):
         self.spatial_lr_scale = 5
-        if type(pcd.points) == np.ndarray:
+        if type(pcd.points) is np.ndarray:
             fused_point_cloud = (
                 torch.tensor(np.asarray(pcd.points)).float().cuda()
             )
         else:
             fused_point_cloud = pcd.points
-        if type(pcd.colors) == np.ndarray:
+        if type(pcd.colors) is np.ndarray:
             fused_color = RGB2SH(
                 torch.tensor(np.asarray(pcd.colors)).float().cuda()
             )
@@ -259,7 +259,7 @@ class GaussianModel:
 
         self.spatial_lr_scale = 5
 
-        l = [
+        params = [
             {
                 "params": [self._xyz],
                 "lr": training_args.position_lr_init * self.spatial_lr_scale,
@@ -293,7 +293,7 @@ class GaussianModel:
         ]
 
         if self.fea_dim > 0:
-            l.append(
+            params.append(
                 {
                     "params": [self.feature],
                     "lr": training_args.feature_lr,
@@ -301,7 +301,7 @@ class GaussianModel:
                 }
             )
 
-        self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
+        self.optimizer = torch.optim.Adam(params, lr=0.0, eps=1e-15)
         self.xyz_scheduler_args = get_expon_lr_func(
             lr_init=training_args.position_lr_init * self.spatial_lr_scale,
             lr_final=training_args.position_lr_final * self.spatial_lr_scale,
@@ -318,24 +318,24 @@ class GaussianModel:
                 return lr
 
     def construct_list_of_attributes(self):
-        l = ["x", "y", "z", "nx", "ny", "nz"]
+        params = ["x", "y", "z", "nx", "ny", "nz"]
         # All channels except the 3 DC
         for i in range(
             self._features_dc.shape[1] * self._features_dc.shape[2]
         ):
-            l.append("f_dc_{}".format(i))
+            params.append("f_dc_{}".format(i))
         for i in range(
             self._features_rest.shape[1] * self._features_rest.shape[2]
         ):
-            l.append("f_rest_{}".format(i))
-        l.append("opacity")
+            params.append("f_rest_{}".format(i))
+        params.append("opacity")
         for i in range(self._scaling.shape[1]):
-            l.append("scale_{}".format(i))
+            params.append("scale_{}".format(i))
         for i in range(self._rotation.shape[1]):
-            l.append("rot_{}".format(i))
+            params.append("rot_{}".format(i))
         for i in range(self.fea_dim):
-            l.append("fea_{}".format(i))
-        return l
+            params.append("fea_{}".format(i))
+        return params
 
     def save_ply(self, path):
         mkdir_p(os.path.dirname(path))

@@ -1,7 +1,6 @@
 import numpy as np
-from scipy.spatial.transform import Rotation as R
-
 import torch
+from scipy.spatial.transform import Rotation as R
 
 
 def dot(x, y):

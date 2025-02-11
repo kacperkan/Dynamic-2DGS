@@ -8,10 +8,11 @@
 # its affiliates is strictly prohibited.
 
 import os
-import numpy as np
-import torch
-import nvdiffrast.torch as dr
+
 import imageio
+import numpy as np
+import nvdiffrast.torch as dr
+import torch
 
 # ----------------------------------------------------------------------------
 # Vector operations
@@ -270,9 +271,9 @@ def segment_sum(data: torch.Tensor, segment_ids: torch.Tensor) -> torch.Tensor:
             segment_ids.shape[0], *data.shape[1:]
         )
 
-    assert (
-        data.shape == segment_ids.shape
-    ), "data.shape and segment_ids.shape should be equal"
+    assert data.shape == segment_ids.shape, (
+        "data.shape and segment_ids.shape should be equal"
+    )
 
     shape = [num_segments] + list(data.shape[1:])
     result = torch.zeros(*shape, dtype=torch.float32, device="cuda")
@@ -324,15 +325,15 @@ def perspective_offcenter(
     xstart = (R - L) * rx
     ystart = (T - B) * ry
 
-    l = L + xstart
-    r = l + width
+    ll = L + xstart
+    r = ll + width
     b = B + ystart
     t = b + height
 
     # https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/opengl-perspective-projection-matrix
     return torch.tensor(
         [
-            [2 / (r - l), 0, (r + l) / (r - l), 0],
+            [2 / (r - ll), 0, (r + ll) / (r - ll), 0],
             [0, -2 / (t - b), (t + b) / (t - b), 0],
             [0, 0, -(f + n) / (f - n), -(2 * f * n) / (f - n)],
             [0, 0, -1, 0],
@@ -437,13 +438,17 @@ def random_rotation(device=None):
 
 def lines_focal(o, d):
     d = safe_normalize(d)
-    I = torch.eye(3, dtype=o.dtype, device=o.device)
+    identity = torch.eye(3, dtype=o.dtype, device=o.device)
     S = torch.sum(
-        d[..., None] @ torch.transpose(d[..., None], 1, 2) - I[None, ...],
+        d[..., None] @ torch.transpose(d[..., None], 1, 2)
+        - identity[None, ...],
         dim=0,
     )
     C = torch.sum(
-        (d[..., None] @ torch.transpose(d[..., None], 1, 2) - I[None, ...])
+        (
+            d[..., None] @ torch.transpose(d[..., None], 1, 2)
+            - identity[None, ...]
+        )
         @ o[..., None],
         dim=0,
     ).squeeze(1)
@@ -510,30 +515,6 @@ def bilinear_downsample(x: torch.tensor) -> torch.Tensor:
 
 
 # ----------------------------------------------------------------------------
-# Bilinear downsample log(spp) steps
-# ----------------------------------------------------------------------------
-
-
-def bilinear_downsample(x: torch.tensor, spp) -> torch.Tensor:
-    w = (
-        torch.tensor(
-            [[1, 3, 3, 1], [3, 9, 9, 3], [3, 9, 9, 3], [1, 3, 3, 1]],
-            dtype=torch.float32,
-            device=x.device,
-        )
-        / 64.0
-    )
-    g = x.shape[-1]
-    w = w.expand(g, 1, 4, 4)
-    x = x.permute(0, 3, 1, 2)  # NHWC -> NCHW
-    steps = int(np.log2(spp))
-    for _ in range(steps):
-        xp = torch.nn.functional.pad(x, (1, 1, 1, 1), mode="replicate")
-        x = torch.nn.functional.conv2d(xp, w, padding=0, stride=2, groups=g)
-    return x.permute(0, 2, 3, 1).contiguous()  # NCHW -> NHWC
-
-
-# ----------------------------------------------------------------------------
 # Singleton initialize GLFW
 # ----------------------------------------------------------------------------
 
@@ -548,7 +529,7 @@ def init_glfw():
         glfw.ERROR_REPORTING = "raise"
         glfw.default_window_hints()
         glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-        test = glfw.create_window(
+        _ = glfw.create_window(
             8, 8, "Test", None, None
         )  # Create a window and see if not initialized yet
     except glfw.GLFWError as e:
@@ -566,8 +547,8 @@ _glfw_window = None
 
 def display_image(image, title=None):
     # Import OpenGL
-    import OpenGL.GL as gl
     import glfw
+    import OpenGL.GL as gl
 
     # Zoom image if requested.
     image = (
@@ -627,14 +608,14 @@ def save_image(fn, x: np.ndarray):
             imageio.imwrite(
                 fn, np.clip(np.rint(x * 255.0), 0, 255).astype(np.uint8)
             )
-    except:
+    except Exception:
         print("WARNING: FAILED to save image %s" % fn)
 
 
 def save_image_raw(fn, x: np.ndarray):
     try:
         imageio.imwrite(fn, x)
-    except:
+    except Exception:
         print("WARNING: FAILED to save image %s" % fn)
 
 

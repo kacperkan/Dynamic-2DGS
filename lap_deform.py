@@ -1,6 +1,7 @@
+import pytorch3d.ops
 import torch
 import torch.nn as nn
-import pytorch3d.ops
+
 from utils.arap_deform import ARAPDeformer
 from utils.deform_utils import cal_arap_error
 

@@ -9,33 +9,35 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-import torch
+import copy
+import json
+import math
 import os
 import sys
-from PIL import Image
+from glob import glob
+from pathlib import Path
 from typing import NamedTuple, Optional
+
+import cv2 as cv
+import imageio
+import numpy as np
+import torch
+from PIL import Image
+from plyfile import PlyData, PlyElement
+
 from scene.colmap_loader import (
-    read_extrinsics_text,
-    read_intrinsics_text,
     qvec2rotmat,
     read_extrinsics_binary,
+    read_extrinsics_text,
     read_intrinsics_binary,
+    read_intrinsics_text,
     read_points3D_binary,
     read_points3D_text,
 )
-from utils.graphics_utils import getWorld2View2, focal2fov, fov2focal
-import numpy as np
-import json
-import imageio
-from glob import glob
-import cv2 as cv
-from pathlib import Path
-from plyfile import PlyData, PlyElement
-from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 from utils.camera_utils import camera_nerfies_from_JSON
-import math
-import copy
+from utils.graphics_utils import focal2fov, fov2focal, getWorld2View2
+from utils.sh_utils import SH2RGB
 
 
 class CameraInfo(NamedTuple):
@@ -174,7 +176,9 @@ def readColmapCameras(
             FovY = focal2fov(focal_length_y, height)
             FovX = focal2fov(focal_length_x, width)
         else:
-            assert False, "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
+            assert False, (
+                "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
+            )
 
         image_path = os.path.join(images_folder, os.path.basename(extr.name))
         image_name = os.path.basename(image_path).split(".")[0]
@@ -267,7 +271,7 @@ def readColmapSceneInfo(
         )
         cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)
         cam_intrinsics = read_intrinsics_binary(cameras_intrinsic_file)
-    except:
+    except Exception:
         cameras_extrinsic_file = os.path.join(
             path, f"{sparse_name}/0", "images.txt"
         )
@@ -277,7 +281,7 @@ def readColmapSceneInfo(
         cam_extrinsics = read_extrinsics_text(cameras_extrinsic_file)
         cam_intrinsics = read_intrinsics_text(cameras_intrinsic_file)
 
-    reading_dir = "images" if images == None else images
+    reading_dir = "images" if images is None else images
     cam_infos_unsorted = readColmapCameras(
         cam_extrinsics=cam_extrinsics,
         cam_intrinsics=cam_intrinsics,
@@ -319,7 +323,7 @@ def readColmapSceneInfo(
         )
         try:
             xyz, rgb, _ = read_points3D_binary(bin_path)
-        except:
+        except Exception:
             xyz, rgb, _ = read_points3D_text(txt_path)
         if apply_cam_norm:
             xyz += nerf_normalization["apply_translate"]
@@ -338,7 +342,7 @@ def readColmapSceneInfo(
 
     try:
         pcd = fetchPly(ply_path)
-    except:
+    except Exception:
         pcd = None
 
     scene_info = SceneInfo(
@@ -491,8 +495,9 @@ def readNerfSyntheticInfo(
                     depth_img = depth_img.reshape((256, 192))
                 return depth_img
 
-            from utils.camera_utils import loadCam
             from collections import namedtuple
+
+            from utils.camera_utils import loadCam
 
             ARGS = namedtuple(
                 "ARGS", ["resolution", "data_device", "load2gpu_on_the_fly"]
@@ -544,7 +549,7 @@ def readNerfSyntheticInfo(
         storePly(ply_path, xyz, SH2RGB(shs) * 255)
     try:
         pcd = fetchPly(ply_path)
-    except:
+    except Exception:
         pcd = None
 
     scene_info = SceneInfo(
@@ -563,7 +568,6 @@ def readDTUCameras(path, render_camera, object_camera):
     masks_lis = sorted(glob(os.path.join(path, "mask/*.png")))
     n_images = len(images_lis)
     cam_infos = []
-    cam_idx = 0
     for idx in range(0, n_images):
         image_path = images_lis[idx]
         image = np.array(Image.open(image_path))
@@ -645,7 +649,7 @@ def readNeuSDTUInfo(path, render_camera, object_camera):
         storePly(ply_path, xyz, SH2RGB(shs) * 255)
     try:
         pcd = fetchPly(ply_path)
-    except:
+    except Exception:
         pcd = None
 
     scene_info = SceneInfo(
@@ -661,9 +665,9 @@ def readNeuSDTUInfo(path, render_camera, object_camera):
 def view_synthesis(cps, factor=10):
     frame_num = cps.shape[0]
     cps = np.array(cps)
-    from scipy.spatial.transform import Slerp
-    from scipy.spatial.transform import Rotation as R
     from scipy import interpolate as intp
+    from scipy.spatial.transform import Rotation as R
+    from scipy.spatial.transform import Slerp
 
     rots = R.from_matrix(cps[:, :3, :3])
     slerp = Slerp(np.arange(frame_num), rots)
@@ -726,11 +730,9 @@ def readNerfiesCameras(path, inter_valid=True):
 
     train_num = len(train_img)
 
-    all_cam = [meta_json[i]["camera_id"] for i in all_img]
     all_time = [meta_json[i]["time_id"] for i in all_img]
     max_time = max(all_time)
     all_time = [meta_json[i]["time_id"] / max_time for i in all_img]
-    selected_time = set(all_time)
 
     # all poses
     all_cam_params = []
@@ -896,11 +898,9 @@ def readNerfiesColmapCameras(path):
 
     train_num = len(train_img)
 
-    all_cam = [meta_json[i]["camera_id"] for i in all_img]
     all_time = [meta_json[i]["time_id"] for i in all_img]
     max_time = max(all_time)
     all_time = [meta_json[i]["time_id"] / max_time for i in all_img]
-    selected_time = set(all_time)
 
     sparse_name = (
         "sparse"
@@ -992,7 +992,7 @@ def readNerfiesInfo(path, eval):
             )
             try:
                 xyz, rgb, _ = read_points3D_binary(bin_path)
-            except:
+            except Exception:
                 xyz, rgb, _ = read_points3D_text(txt_path)
             if apply_cam_norm:
                 xyz += nerf_normalization["apply_translate"]
@@ -1011,7 +1011,7 @@ def readNerfiesInfo(path, eval):
     else:
         ply_path = os.path.join(path, "points3d.ply")
         if not os.path.exists(ply_path):
-            print(f"Generating point cloud from nerfies...")
+            print("Generating point cloud from nerfies...")
 
             xyz = np.load(os.path.join(path, "points.npy"))
             xyz = (xyz - scene_center) * scene_scale
@@ -1024,7 +1024,7 @@ def readNerfiesInfo(path, eval):
             storePly(ply_path, xyz, SH2RGB(shs) * 255)
     try:
         pcd = fetchPly(ply_path)
-    except:
+    except Exception:
         pcd = None
 
     scene_info = SceneInfo(
@@ -1140,7 +1140,7 @@ def readPlenopticVideoDataset(path, eval, num_images, hold_id=[0]):
 
     try:
         pcd = fetchPly(ply_path)
-    except:
+    except Exception:
         pcd = None
 
     scene_info = SceneInfo(
@@ -1174,10 +1174,10 @@ def readCMUInfo(path, split):
                         )
                     )
                 ).astype(np.float32)
-            except:
+            except Exception:
                 seg = None
 
-            fx, fy, cx, cy = k[0][0], k[1][1], k[0][2], k[1][2]
+            fx, fy, _, _ = k[0][0], k[1][1], k[0][2], k[1][2]
             w2c = torch.tensor(w2c).cuda().float()
             w2c = w2c.transpose(0, 1)
             tanfovx = w / (2 * fx)

@@ -9,9 +9,10 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
+import os
 from errno import EEXIST
 from os import makedirs, path
-import os
+
 import yaml
 
 

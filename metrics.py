@@ -9,17 +9,19 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-from pathlib import Path
+import json
 import os
-from PIL import Image
+from argparse import ArgumentParser
+from pathlib import Path
+
 import torch
 import torchvision.transforms.functional as tf
-from utils.loss_utils import ssim
-from lpipsPyTorch import lpips
-import json
+from PIL import Image
 from tqdm import tqdm
+
+from lpipsPyTorch import lpips
 from utils.image_utils import psnr
-from argparse import ArgumentParser
+from utils.loss_utils import ssim
 
 
 def readImages(renders_dir, gt_dir):
@@ -82,17 +84,17 @@ def evaluate(model_paths):
 
                 print(
                     "  SSIM : {:>12.7f}".format(
-                        torch.tensor(ssims).mean(), ".5"
+                        torch.tensor(ssims).mean(),
                     )
                 )
                 print(
                     "  PSNR : {:>12.7f}".format(
-                        torch.tensor(psnrs).mean(), ".5"
+                        torch.tensor(psnrs).mean(),
                     )
                 )
                 print(
                     "  LPIPS: {:>12.7f}".format(
-                        torch.tensor(lpipss).mean(), ".5"
+                        torch.tensor(lpipss).mean(),
                     )
                 )
                 print("")
@@ -131,7 +133,7 @@ def evaluate(model_paths):
                 json.dump(full_dict[scene_dir], fp, indent=True)
             with open(scene_dir + "/per_view.json", "w") as fp:
                 json.dump(per_view_dict[scene_dir], fp, indent=True)
-        except:
+        except Exception:
             print("Unable to compute metrics for model", scene_dir)
 
 

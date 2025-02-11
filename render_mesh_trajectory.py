@@ -9,38 +9,26 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-import torch
-from scene import Scene, DeformModel
+import copy
+import json
 import os
-from tqdm import tqdm
-from os import makedirs
-from gaussian_renderer import render
-import torchvision
-from utils.general_utils import safe_state
-from argparse import ArgumentParser, Namespace
-from arguments import ModelParams, PipelineParams, get_combined_args
-from gaussian_renderer import GaussianModel
-from utils.mesh_utils import (
-    GaussianExtractor,
-    to_cam_open3d,
-    post_process_mesh,
-)
-from utils.render_utils import generate_path, create_videos
-from utils.system_utils import load_config_from_file, merge_config
-from utils.pose_utils import pose_spherical
-import open3d as o3d
+from argparse import ArgumentParser
+from typing import Tuple
+
+import cv2
+import imageio
 import numpy as np
+import torch
+
+from arguments import ModelParams, PipelineParams, get_combined_args
+from gaussian_renderer import GaussianModel, render
 
 # from utils.camera_utils import get_camera_trajectory_pose
-from mesh_renderer import render_mesh, mesh_shape_renderer
-import cv2
-import copy
-
-import json
-import imageio
-import os
-from PIL import Image
-from read_gt_mesh import load_obj
+from mesh_renderer import mesh_shape_renderer, render_mesh
+from scene import DeformModel, Scene
+from utils.mesh_utils import GaussianExtractor, post_process_mesh
+from utils.pose_utils import pose_spherical
+from utils.render_utils import create_videos, generate_path
 
 
 def clean_mesh(
@@ -48,7 +36,7 @@ def clean_mesh(
     edge_threshold: float = 0.1,
     min_triangles_connected: int = -1,
     fill_holes: bool = True,
-) -> (torch.Tensor, torch.Tensor, torch.Tensor):
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Performs the following steps to clean the mesh:
 
@@ -94,11 +82,6 @@ def clean_mesh(
     # cleanup via open3d
     mesh.remove_unreferenced_vertices()
 
-    if fill_holes:
-        # misc cleanups via trimesh
-        mesh = o3d_to_trimesh(mesh)
-        mesh.process()
-        mesh.fill_holes()
     return mesh
 
 
@@ -298,7 +281,10 @@ if __name__ == "__main__":
         ],
         0,
     )
-    to8b = lambda x: (255 * np.clip(x, 0, 1)).astype(np.uint8)
+
+    def to8b(x):
+        return (255 * np.clip(x, 0, 1)).astype(np.uint8)
+
     if not args.skip_mesh:
         renderings = []
         for i in range(len(render_poses)):

@@ -9,11 +9,11 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-import torch
-import numpy as np
-
 # NeRF-DS Alex LPIPS
 import lpips as lpips_lib
+import numpy as np
+import torch
+from piq import LPIPS
 
 loss_fn_alex = lpips_lib.LPIPS(net="alex")
 loss_fn_alex.net.cuda()
@@ -44,7 +44,5 @@ with torch.no_grad():
         psnr = -10.0 * np.log(loss.item()) / np.log(10.0)
         return psnr
 
-
-from piq import ssim, LPIPS
 
 lpips = LPIPS()

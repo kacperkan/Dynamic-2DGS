@@ -1,16 +1,9 @@
 import numpy as np
-import torch
-from pytorch3d.loss.mesh_laplacian_smoothing import cot_laplacian
-from pytorch3d.ops import ball_query
-from pytorch3d.io import load_ply
-
-# try:
-#     print('Using speed up torch_batch_svd!')
-#     from torch_batch_svd import svd
-# except:
-#     print('Use original torch svd!')
-svd = torch.svd
 import pytorch3d.ops
+import torch
+from pytorch3d.ops import ball_query
+
+svd = torch.svd
 
 
 def quaternion_to_matrix(quaternions: torch.Tensor) -> torch.Tensor:
@@ -228,13 +221,10 @@ def estimate_rotation(
 def invert_matrix(mat):
     try:
         mat_inv = torch.inverse(mat)
-    except:
+    except Exception:
         print("L_reduced is not invertible, use pseudo inverse instead")
         mat_inv = torch.linalg.pinv(mat)
     return mat_inv
-
-
-import time
 
 
 def cal_arap_error(
@@ -298,7 +288,7 @@ def cal_L_from_points(points, return_nn_idx=False):
     knn_res = ball_query(
         points[None], points[None], K=K, radius=radius, return_nn=False
     )
-    nn_dist, nn_idx = knn_res.dists[0], knn_res.idx[0]  # [Nv, K], [Nv, K]
+    _, nn_idx = knn_res.dists[0], knn_res.idx[0]  # [Nv, K], [Nv, K]
     for idx, cur_nn_idx in enumerate(nn_idx):
         real_cur_nn_idx = cur_nn_idx[cur_nn_idx != -1]
         real_cur_nn_idx = real_cur_nn_idx[real_cur_nn_idx != idx]

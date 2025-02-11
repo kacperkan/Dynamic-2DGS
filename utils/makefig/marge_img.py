@@ -1,7 +1,5 @@
 import cv2
-
 import numpy as np
-
 
 output_path = "/data3/zhangshuai/SC-2DGSv2/outputs/lego_result/"
 d3dgs_i_path = output_path + "image/d3dgs/v00018_zoomed.png"
@@ -47,7 +45,7 @@ def margeimage(
     new_image[heigth1:, width1 : 2 * width1] = d3dgs_m
     new_image[heigth1:, 2 * width1 : 3 * width1] = scgs_m
     new_image[heigth1:, 3 * width1 : 4 * width1] = ours_m
-    if gt_mesh_path != None:
+    if gt_mesh_path is not None:
         new_image[heigth1:, 4 * width1 : 5 * width1] = gt_m
 
     cv2.imwrite(output_path + "result.png", new_image)
@@ -67,7 +65,7 @@ scgs_m = cv2.imread(scgs_m_path)
 
 gt = cv2.imread(gt_path)
 gt_m = None
-if gt_mesh_path != None:
+if gt_mesh_path is not None:
     gt_m = cv2.imread(gt_mesh_path)
 
 

@@ -9,8 +9,9 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-import torch
 import math
+
+import torch
 from diff_surfel_rasterization import (
     GaussianRasterizationSettings,
     GaussianRasterizer,
@@ -18,8 +19,8 @@ from diff_surfel_rasterization import (
 
 # from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 from scene.gaussian_model import GaussianModel
-from utils.sh_utils import eval_sh
 from utils.point_utils import depth_to_normal
+from utils.sh_utils import eval_sh
 
 
 def standardize_quaternion(quaternions: torch.Tensor) -> torch.Tensor:

@@ -9,26 +9,24 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-import torch
-from scene import Scene, DeformModel
+import json
 import os
-from typing import Tuple
-from gaussian_renderer import render
 from argparse import ArgumentParser
-from arguments import ModelParams, PipelineParams, get_combined_args
-from gaussian_renderer import GaussianModel
-from utils.mesh_utils import (
-    GaussianExtractor,
-    post_process_mesh,
-)
-from utils.render_utils import generate_path, create_videos
+from typing import Tuple
+
+import cv2
+import numpy as np
 
 # import sys
 import open3d as o3d
-import numpy as np
-from mesh_renderer import render_mesh, mesh_shape_renderer
-import cv2
-import json
+import torch
+
+from arguments import ModelParams, PipelineParams, get_combined_args
+from gaussian_renderer import GaussianModel, render
+from mesh_renderer import mesh_shape_renderer, render_mesh
+from scene import DeformModel, Scene
+from utils.mesh_utils import GaussianExtractor, post_process_mesh
+from utils.render_utils import create_videos, generate_path
 
 
 def clean_mesh(

@@ -10,8 +10,8 @@
 #
 
 import os
-from argparse import ArgumentParser
 import shutil
+from argparse import ArgumentParser
 
 # This Python script is based on the shell converter script provided in the MipNerF 360 repository.
 parser = ArgumentParser("Colmap converter")

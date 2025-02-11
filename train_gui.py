@@ -9,27 +9,28 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
+import math
 import os
+import sys
+import uuid
+from argparse import ArgumentParser, Namespace
+from random import randint
+
+import imageio
+import numpy as np
 
 # os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
 import torch
-from random import randint
-from utils.loss_utils import l1_loss, ssim
-from gaussian_renderer import render, render_flow
 import torch.nn.functional
-import sys
-from scene import Scene, GaussianModel, DeformModel
-from utils.general_utils import safe_state, get_linear_noise_func
-import uuid
 import tqdm
-from argparse import ArgumentParser, Namespace
-from arguments import ModelParams, PipelineParams, OptimizationParams
-from train import training_report
-import math
-from cam_utils import OrbitCamera
-import numpy as np
-import imageio
 
+from arguments import ModelParams, OptimizationParams, PipelineParams
+from cam_utils import OrbitCamera
+from gaussian_renderer import render, render_flow
+from scene import DeformModel, GaussianModel, Scene
+from train import training_report
+from utils.general_utils import get_linear_noise_func, safe_state
+from utils.loss_utils import l1_loss, ssim
 
 try:
     from torch.utils.tensorboard import SummaryWriter

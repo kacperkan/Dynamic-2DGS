@@ -1,12 +1,12 @@
 import numpy as np
 import torch
+
 from utils.deform_utils import (
-    cal_laplacian,
     cal_connectivity_from_points,
-    produce_edge_matrix_nfmt,
-    lstsq_with_handles,
+    cal_laplacian,
     cal_verts_deg,
-    rigid_align,
+    lstsq_with_handles,
+    produce_edge_matrix_nfmt,
 )
 from utils.other_utils import matrix_to_quaternion
 
@@ -21,7 +21,7 @@ def cal_L_from_points(points, return_nn_idx=False):
     knn_res = ball_query(
         points[None], points[None], K=K, radius=radius, return_nn=False
     )
-    nn_dist, nn_idx = knn_res.dists[0], knn_res.idx[0]  # [Nv, K], [Nv, K]
+    _, nn_idx = knn_res.dists[0], knn_res.idx[0]  # [Nv, K], [Nv, K]
 
     for idx, cur_nn_idx in enumerate(nn_idx):
         real_cur_nn_idx = cur_nn_idx[cur_nn_idx != -1]
@@ -111,7 +111,7 @@ class ARAPDeformer:
         # L_reduced_inv = cholesky_invert(L_reduced)
         try:
             self.L_reduced_inv = torch.inverse(L_reduced)
-        except:
+        except Exception:
             print("L_reduced is not invertible, use pseudo inverse instead")
             # self.L_reduced_inv = torch.mm(torch.inverse(torch.mm(L_reduced.T, L_reduced)), L_reduced.T)
             self.L_reduced_inv = torch.linalg.pinv(L_reduced)
@@ -135,7 +135,7 @@ class ARAPDeformer:
 
         ##### calculate b #####
         ### b_fixed
-        unknown_verts = [
+        _ = [
             n for n in range(self.N) if n not in handle_idx.tolist()
         ]  # all unknown verts
         b_fixed = torch.zeros(
@@ -245,9 +245,9 @@ class ARAPDeformer:
 
 
 if __name__ == "__main__":
-    from pytorch3d.io import load_ply
-    from pytorch3d.ops import ball_query
     import pickle
+
+    from pytorch3d.ops import ball_query
 
     with open("./control_kpt.pkl", "rb") as f:
         data = pickle.load(f)

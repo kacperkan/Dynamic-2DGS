@@ -9,31 +9,32 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-import torch
-from scene import Scene, DeformModel
 import os
-from tqdm import tqdm
-from os import makedirs
-from gaussian_renderer import render
-import torchvision
-from utils.general_utils import safe_state
-from utils.pose_utils import pose_spherical
 from argparse import ArgumentParser
-from arguments import (
-    ModelParams,
-    PipelineParams,
-    get_combined_args,
-    OptimizationParams,
-)
-from gaussian_renderer import GaussianModel
+from os import makedirs
+
 import imageio
 import numpy as np
-from pytorch_msssim import ms_ssim
+import torch
+import torchvision
 from piq import LPIPS
+from pytorch_msssim import ms_ssim
+from tqdm import tqdm
+
+from arguments import (
+    ModelParams,
+    OptimizationParams,
+    PipelineParams,
+    get_combined_args,
+)
+from gaussian_renderer import GaussianModel, render
+from scene import DeformModel, Scene
+from utils.general_utils import safe_state
+from utils.pose_utils import pose_spherical
+from utils.image_utils import alex_lpips, psnr
+from utils.image_utils import ssim as ssim_func
 
 lpips = LPIPS()
-from utils.image_utils import ssim as ssim_func
-from utils.image_utils import psnr, lpips, alex_lpips
 
 
 def render_set(
@@ -65,7 +66,9 @@ def render_set(
     psnr_list, ssim_list, lpips_list = [], [], []
     ms_ssim_list, alex_lpips_list = [], []
 
-    to8b = lambda x: (255 * np.clip(x, 0, 1)).astype(np.uint8)
+    def to8b(x):
+        return (255 * np.clip(x, 0, 1)).astype(np.uint8)
+
     renderings = []
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         if load2gpt_on_the_fly:
@@ -179,7 +182,8 @@ def interpolate_time(
     makedirs(render_path, exist_ok=True)
     makedirs(depth_path, exist_ok=True)
 
-    to8b = lambda x: (255 * np.clip(x, 0, 1)).astype(np.uint8)
+    def to8b(x):
+        return (255 * np.clip(x, 0, 1)).astype(np.uint8)
 
     frame = 150
     idx = torch.randint(0, len(views), (1,)).item()
@@ -264,7 +268,9 @@ def interpolate_all(
         ],
         0,
     )
-    to8b = lambda x: (255 * np.clip(x, 0, 1)).astype(np.uint8)
+
+    def to8b(x):
+        return (255 * np.clip(x, 0, 1)).astype(np.uint8)
 
     idx = torch.randint(0, len(views), (1,)).item()
     view = views[idx]  # Choose a specific time for rendering

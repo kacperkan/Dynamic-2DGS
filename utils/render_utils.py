@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-import os
-import enum
-import types
-from typing import List, Mapping, Optional, Text, Tuple, Union
 import copy
-from PIL import Image
-import mediapy as media
-from matplotlib import cm
-from tqdm import tqdm
+import os
+from typing import Tuple
 
+import mediapy as media
+import numpy as np
 import torch
+from matplotlib import cm
+from PIL import Image
+from tqdm import tqdm
 
 
 def normalize(x: np.ndarray) -> np.ndarray:
@@ -236,7 +234,9 @@ def create_videos(base_dir, input_dir, out_name, num_frames=480):
     video_prefix = f"{out_name}"
 
     zpad = max(5, len(str(num_frames - 1)))
-    idx_to_str = lambda idx: str(idx).zfill(zpad)
+
+    def idx_to_str(idx):
+        return str(idx).zfill(zpad)
 
     os.makedirs(base_dir, exist_ok=True)
     render_dist_curve_fn = np.log

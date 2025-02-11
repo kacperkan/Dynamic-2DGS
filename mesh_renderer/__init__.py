@@ -1,27 +1,24 @@
-import torch
+import math
 
 # from scene import Scene
-import os
-from tqdm import tqdm
-import nvdiffrast.torch as dr
-from utils.graphics_utils import getWorld2View2
 
 # from plyfile import PlyData
 import numpy as np
+import nvdiffrast.torch as dr
 import torch
-import plyfile
-import math
-from pytorch3d.structures import Meshes
 from pytorch3d.renderer import (
-    PerspectiveCameras,
-    SoftPhongShader,
-    RasterizationSettings,
-    MeshRenderer,
-    MeshRasterizer,
-    Materials,
-    TexturesVertex,
     DirectionalLights,
+    Materials,
+    MeshRasterizer,
+    MeshRenderer,
+    PerspectiveCameras,
+    RasterizationSettings,
+    SoftPhongShader,
+    TexturesVertex,
 )
+from pytorch3d.structures import Meshes
+
+from utils.graphics_utils import getWorld2View2
 
 
 def fov2focal(fov, pixels):
@@ -118,7 +115,6 @@ def render_mesh(
     ) as peeler:
         for _ in range(num_layers):
             rast, db = peeler.rasterize_next_layer()
-            cv_image2 = rast[..., -1:].squeeze().cpu().byte().numpy()
 
             mesh_v_feat_bxnxd = torch.flip(mesh_v_feat_bxnxd, dims=[2])
             output, _ = dr.interpolate(

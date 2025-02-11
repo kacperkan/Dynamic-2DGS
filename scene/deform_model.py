@@ -1,11 +1,10 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from utils.time_utils import DeformNetwork, ControlNodeWarp, StaticNetwork
 import os
-from utils.system_utils import searchForMaxIteration
-from utils.general_utils import get_expon_lr_func
 
+import torch
+
+from utils.general_utils import get_expon_lr_func
+from utils.system_utils import searchForMaxIteration
+from utils.time_utils import ControlNodeWarp, DeformNetwork, StaticNetwork
 
 model_dict = {
     "mlp": DeformNetwork,
@@ -34,7 +33,7 @@ class DeformModel:
         return self.deform(xyz, time_emb, iteration=iteration, **kwargs)
 
     def train_setting(self, training_args):
-        l = [
+        params = [
             {
                 "params": group["params"],
                 "lr": training_args.position_lr_init
@@ -44,7 +43,7 @@ class DeformModel:
             }
             for group in self.deform.trainable_parameters()
         ]
-        self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
+        self.optimizer = torch.optim.Adam(params, lr=0.0, eps=1e-15)
 
         self.deform_scheduler_args = get_expon_lr_func(
             lr_init=training_args.position_lr_init

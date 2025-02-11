@@ -1,6 +1,6 @@
-import os
-import numpy as np
 from collections import defaultdict
+
+import numpy as np
 
 
 def load_obj(obj_file):

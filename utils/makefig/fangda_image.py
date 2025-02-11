@@ -1,5 +1,4 @@
 import cv2
-
 import numpy as np
 
 
@@ -34,12 +33,9 @@ def zoom_image(image_path, region, region2, zoom_factor):
 
     # 将放大后的区域放置在图像的右下角
     x_pos = image.shape[1] - zoomed_width
-    y_pos = image.shape[0] - zoomed_height
     # image[y_pos:image.shape[0], x_pos:image.shape[1]] = zoomed_region
     # hook +10
     # pianyi = 30 #hook
-    pianyi_l = 5  # hook
-    pianyi_w = 25
 
     # image[0+40+pianyi_l:zoomed_height+40+pianyi_l, x_pos-pianyi_w:image.shape[1]-pianyi_w] = zoomed_region
     # cv2.rectangle(image, (image.shape[1]-pianyi_w, 0+40+pianyi_l), (image.shape[1]-zoomed_width-pianyi_w, zoomed_height+40+pianyi_l), (100, 100, 0), 2)

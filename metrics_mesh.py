@@ -1,15 +1,14 @@
-from pathlib import Path
+import json
 import os
-from PIL import Image
+
 import torch
 import torchvision.transforms.functional as tf
-from utils.loss_utils import ssim
-from lpipsPyTorch import lpips
-import json
+from PIL import Image
 from tqdm import tqdm
-from utils.image_utils import psnr, get_psnr
-from argparse import ArgumentParser
-import cv2
+
+from lpipsPyTorch import lpips
+from utils.image_utils import get_psnr
+from utils.loss_utils import ssim
 
 
 def readImages(renders_dir, gt_dir):
@@ -32,7 +31,7 @@ def readImages(renders_dir, gt_dir):
 
 
 def metrics(render_path, gt_path, savepath, name):
-    imagelist = os.listdir(gt_path)
+    os.listdir(gt_path)
     result = {}
     # renders, gts, image_names = readImages(render_path, gt_path)
 
@@ -47,9 +46,21 @@ def metrics(render_path, gt_path, savepath, name):
         psnrs.append(get_psnr(renders[idx], gts[idx]))
         lpipss.append(lpips(renders[idx], gts[idx], net_type="vgg"))
 
-    print("  SSIM : {:>12.7f}".format(torch.tensor(ssims).mean(), ".5"))
-    print("  PSNR : {:>12.7f}".format(torch.tensor(psnrs).mean(), ".5"))
-    print("  LPIPS: {:>12.7f}".format(torch.tensor(lpipss).mean(), ".5"))
+    print(
+        "  SSIM : {:>12.7f}".format(
+            torch.tensor(ssims).mean(),
+        )
+    )
+    print(
+        "  PSNR : {:>12.7f}".format(
+            torch.tensor(psnrs).mean(),
+        )
+    )
+    print(
+        "  LPIPS: {:>12.7f}".format(
+            torch.tensor(lpipss).mean(),
+        )
+    )
     print("")
 
     result.update(

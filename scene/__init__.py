@@ -9,16 +9,15 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-import os
-import random
+import copy
 import json
-from utils.system_utils import searchForMaxIteration
+import os
+
+from arguments import ModelParams
 from scene.dataset_readers import sceneLoadTypeCallbacks
 from scene.gaussian_model import GaussianModel
-from scene.deform_model import DeformModel
-from arguments import ModelParams
-from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
-import copy
+from utils.camera_utils import camera_to_JSON, cameraList_from_camInfos
+from utils.system_utils import searchForMaxIteration
 
 
 class Scene:
