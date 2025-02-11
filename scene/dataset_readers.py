@@ -943,9 +943,6 @@ def readNerfiesColmapCameras(path):
 
 def readNerfiesInfo(path, eval):
     print("Reading Nerfies Info")
-    import ipdb
-
-    ipdb.set_trace()
     if os.path.exists(os.path.join(path, "colmap")):
         cam_infos, train_num, scene_center, scene_center = (
             readNerfiesColmapCameras(path)

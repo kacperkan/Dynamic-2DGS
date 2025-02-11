@@ -219,6 +219,7 @@ class GUI:
     def train_step(self, stage: Literal["coarse", "fine"]):
         self.iter_start.record()
 
+        self.gaussians.update_learning_rate(self.iteration)
         # Every 1000 its we increase the levels of SH up to a maximum degree
         if self.iteration % self.opt.oneupSHdegree_step == 0:
             self.gaussians.oneupSHdegree()
@@ -288,13 +289,14 @@ class GUI:
         ) * Ll1 + self.opt.lambda_dssim * (1.0 - ssim(image, gt_image))
         loss = loss_img + normal_loss + dist_loss + 0.001 * mask_loss
         if stage == "fine" and self.dataset.time_smoothness_weight != 0:
-            # tv_loss = 0
             tv_loss = self.gaussians.compute_regulation(
                 self.dataset.time_smoothness_weight,
                 self.dataset.l1_time_planes,
                 self.dataset.plane_tv_weight,
             )
             loss += tv_loss
+        else:
+            tv_loss = 0
 
         loss.backward()
         viewspace_point_tensor_grad = viewspace_point_tensor
@@ -438,7 +440,6 @@ class GUI:
             # Optimizer step
             if self.iteration < self.opt.iterations:
                 self.gaussians.optimizer.step()
-                self.gaussians.update_learning_rate(self.iteration)
                 self.gaussians.optimizer.zero_grad(set_to_none=True)
 
             if self.iteration in self.checkpoint_iterations:
@@ -518,16 +519,13 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=6009)
     parser.add_argument("--detect_anomaly", action="store_true", default=False)
     parser.add_argument(
-        "--test_iterations",
-        nargs="+",
-        type=int,
-        default=list(range(1000, 100_0001, 1000)),
+        "--test_iterations", nargs="+", type=int, default=[3000, 7000, 14000]
     )
     parser.add_argument(
         "--save_iterations",
         nargs="+",
         type=int,
-        default=[7_000, 10_000, 20_000, 30_000, 40000],
+        default=[14000, 20000, 30_000, 45000, 60000],
     )
 
     parser.add_argument(

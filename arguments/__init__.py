@@ -32,7 +32,7 @@ class ParamGroup:
             #     else:
             #         group.add_argument("--" + key, ("-" + key[0:1]), default=value, type=t)
             # else:
-            if type(t) is bool:
+            if t is bool:
                 group.add_argument(
                     "--" + key, default=value, action="store_true"
                 )
@@ -93,12 +93,12 @@ class ModelParams(ParamGroup):
         self.kplanes_config = {
             "grid_dimensions": 2,
             "input_coordinate_dim": 4,
-            "output_coordinate_dim": 32,
+            "output_coordinate_dim": 16,
             "resolution": [
                 64,
                 64,
                 64,
-                25,
+                300,
             ],  # [64,64,64]: resolution of spatial grid. 25: resolution of temporal grid, better to be half length of dynamic frames
         }
         self.multires = [1, 2, 4, 8]  # multi resolution of voxel grid
